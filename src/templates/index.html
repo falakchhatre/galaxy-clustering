@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Galaxy Clustering Visualization</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Galaxy Clustering & Redshift-Space Distortions</h1>
+  </header>
+
+  <section class="controls">
+    <label for="galaxyCount">Number of Galaxies:</label>
+    <input type="number" id="galaxyCount" min="100" max="5000" value="1000" step="100" />
+
+    <label for="velocityDispersion">Velocity Dispersion (km/s):</label>
+    <input type="number" id="velocityDispersion" min="0" max="1000" value="300" step="50" />
+
+    <button id="updateBtn">Recalculate Correlation</button>
+    <button id="fetchGalaxiesBtn">Fetch Galaxies</button>
+  </section>
+
+
+  <section class="plots">
+    <h2>3D Galaxy Distribution (Cartesian Coordinates)</h2>
+    <div id="galaxyPlot" class="plot"></div>
+
+    <h2>Two-Point Correlation Function</h2>
+    <div id="correlationPlot" class="plot"></div>
+  </section>
+
+  <script>
+    const galaxyCountInput = document.getElementById('galaxyCount');
+    const velocityDispersionInput = document.getElementById('velocityDispersion');
+    const updateBtn = document.getElementById('updateBtn');
+    const fetchGalaxiesBtn = document.getElementById('fetchGalaxiesBtn');
+
+    // Remove localStorage usage to reset inputs on reload
+    // If you want persistence, uncomment the below lines:
+
+    // if (localStorage.getItem('galaxyCount')) {
+    //   galaxyCountInput.value = localStorage.getItem('galaxyCount');
+    // }
+    // if (localStorage.getItem('velocityDispersion')) {
+    //   velocityDispersionInput.value = localStorage.getItem('velocityDispersion');
+    // }
+
+    let galaxiesData = null;  // current galaxy data stored here
+
+    async function fetchGalaxies(count) {
+      const res = await fetch(`/api/galaxies?count=${count}`);
+      const data = await res.json();
+      return data;
+    }
+
+    function plotGalaxies(galaxies) {
+      const trace = {
+        x: galaxies.map(g => g.x),
+        y: galaxies.map(g => g.y),
+        z: galaxies.map(g => g.z_cart),
+        mode: 'markers',
+        type: 'scatter3d',
+        marker: {
+          size: 3,
+          color: galaxies.map(g => g.z),
+          colorscale: 'Viridis',
+          colorbar: { title: 'Redshift (z)' },
+          opacity: 0.8
+        },
+        text: galaxies.map(g => `RA: ${g.ra.toFixed(2)}°, Dec: ${g.dec.toFixed(2)}°, z: ${g.z.toFixed(3)}`),
+        hoverinfo: 'text'
+      };
+
+      const layout = {
+        margin: { l:0, r:0, b:0, t:0 },
+        scene: {
+          xaxis: { title: 'X (Mpc)' },
+          yaxis: { title: 'Y (Mpc)' },
+          zaxis: { title: 'Z (Mpc)' }
+        }
+      };
+
+      Plotly.newPlot('galaxyPlot', [trace], layout, {responsive: true});
+    }
+
+    function plotCorrelation(data) {
+      const traceReal = {
+        x: data.r,
+        y: data.xi_real,
+        mode: 'lines+markers',
+        name: 'Real Space',
+        line: { color: 'blue' }
+      };
+
+      const traceRSD = {
+        x: data.r,
+        y: data.xi_rsd,
+        mode: 'lines+markers',
+        name: 'Redshift Space',
+        line: { color: 'red', dash: 'dash' }
+      };
+
+      const layout = {
+        xaxis: { title: 'Separation r (Mpc)' },
+        yaxis: { title: 'Correlation function ξ(r)' },
+        legend: { x: 0, y: 1 },
+        margin: { t: 30 }
+      };
+
+      Plotly.newPlot('correlationPlot', [traceReal, traceRSD], layout, {responsive: true});
+    }
+
+    async function updateCorrelationOnly() {
+      if (!galaxiesData) {
+        alert("Please fetch galaxies first.");
+        return;
+      }
+
+      const velocityDispersion = parseFloat(velocityDispersionInput.value);
+
+      const res = await fetch('/api/correlation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          velocity_dispersion: velocityDispersion,
+          galaxies: galaxiesData
+        })
+      });
+
+      if (!res.ok) {
+        alert("Error recalculating correlation.");
+        return;
+      }
+
+      const data = await res.json();
+      plotCorrelation(data);
+    }
+
+
+    async function fetchGalaxiesAndUpdate() {
+      const count = parseInt(galaxyCountInput.value);
+      const velocityDispersion = parseFloat(velocityDispersionInput.value);
+
+      galaxiesData = await fetchGalaxies(count);
+      plotGalaxies(galaxiesData);
+
+      // POST to /api/correlation with galaxiesData and velocityDispersion
+      const res = await fetch('/api/correlation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          velocity_dispersion: velocityDispersion,
+          galaxies: galaxiesData
+        })
+      });
+
+      if (!res.ok) {
+        alert("Error fetching correlation data");
+        return;
+      }
+
+      const correlationData = await res.json();
+      plotCorrelation(correlationData);
+    }
+
+
+    async function recalcCorrelationWithCurrentGalaxies() {
+      if (!galaxiesData) {
+        alert("Please fetch galaxies first.");
+        return;
+      }
+      const velocityDispersion = parseFloat(velocityDispersionInput.value);
+
+      const res = await fetch('/api/correlation', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          velocity_dispersion: velocityDispersion,
+          galaxies: galaxiesData
+        })
+      });
+
+      const data = await res.json();
+
+      galaxiesDataRSD = galaxiesData.map((g, i) => ({
+        ...g,
+        x: data.x_rsd[i],
+        y: data.y_rsd[i],
+        z_cart: data.z_rsd[i]
+      }));
+
+      plotGalaxies(galaxiesDataRSD);
+      
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+      plotCorrelation(data);
+    }
+
+    updateBtn.addEventListener('click', recalcCorrelationWithCurrentGalaxies);
+    fetchGalaxiesBtn.addEventListener('click', fetchGalaxiesAndUpdate);
+
+    // Initial load: fetch with defaults
+    fetchGalaxiesAndUpdate();
+  </script>
+
+
+
+</body>
+</html>
