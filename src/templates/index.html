@@ -38,16 +38,6 @@
     const updateBtn = document.getElementById('updateBtn');
     const fetchGalaxiesBtn = document.getElementById('fetchGalaxiesBtn');
 
-    // Remove localStorage usage to reset inputs on reload
-    // If you want persistence, uncomment the below lines:
-
-    // if (localStorage.getItem('galaxyCount')) {
-    //   galaxyCountInput.value = localStorage.getItem('galaxyCount');
-    // }
-    // if (localStorage.getItem('velocityDispersion')) {
-    //   velocityDispersionInput.value = localStorage.getItem('velocityDispersion');
-    // }
-
     let galaxiesData = null;  // current galaxy data stored here
 
     async function fetchGalaxies(count) {
@@ -113,33 +103,6 @@
       Plotly.newPlot('correlationPlot', [traceReal, traceRSD], layout, {responsive: true});
     }
 
-    async function updateCorrelationOnly() {
-      if (!galaxiesData) {
-        alert("Please fetch galaxies first.");
-        return;
-      }
-
-      const velocityDispersion = parseFloat(velocityDispersionInput.value);
-
-      const res = await fetch('/api/correlation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          velocity_dispersion: velocityDispersion,
-          galaxies: galaxiesData
-        })
-      });
-
-      if (!res.ok) {
-        alert("Error recalculating correlation.");
-        return;
-      }
-
-      const data = await res.json();
-      plotCorrelation(data);
-    }
-
-
     async function fetchGalaxiesAndUpdate() {
       const count = parseInt(galaxyCountInput.value);
       const velocityDispersion = parseFloat(velocityDispersionInput.value);
@@ -193,7 +156,7 @@
       }));
 
       plotGalaxies(galaxiesDataRSD);
-      
+
       if (data.error) {
         alert(data.error);
         return;
@@ -205,7 +168,7 @@
     fetchGalaxiesBtn.addEventListener('click', fetchGalaxiesAndUpdate);
 
     // Initial load: fetch with defaults
-    fetchGalaxiesAndUpdate();
+    //fetchGalaxiesAndUpdate();
   </script>
 
 
