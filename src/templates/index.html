@@ -23,6 +23,10 @@
     <button id="fetchGalaxiesBtn">Fetch Galaxies</button>
   </section>
 
+  <section>
+    <div id="statusMessage" style="display:none; margin-top:10px; color:#555; font-weight: bold;">
+    </div>
+  </section>
 
   <section class="plots">
     <h2>3D Galaxy Distribution (Cartesian Coordinates)</h2>
@@ -37,8 +41,9 @@
     const velocityDispersionInput = document.getElementById('velocityDispersion');
     const updateBtn = document.getElementById('updateBtn');
     const fetchGalaxiesBtn = document.getElementById('fetchGalaxiesBtn');
+    const statusMessage = document.getElementById('statusMessage');
 
-    let galaxiesData = null;  // current galaxy data stored here
+    let galaxiesData = null;  
 
     async function fetchGalaxies(count) {
       const res = await fetch(`/api/galaxies?count=${count}`);
@@ -110,7 +115,6 @@
       galaxiesData = await fetchGalaxies(count);
       plotGalaxies(galaxiesData);
 
-      // POST to /api/correlation with galaxiesData and velocityDispersion
       const res = await fetch('/api/correlation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,49 +133,58 @@
       plotCorrelation(correlationData);
     }
 
-
     async function recalcCorrelationWithCurrentGalaxies() {
       if (!galaxiesData) {
         alert("Please fetch galaxies first.");
         return;
       }
+
       const velocityDispersion = parseFloat(velocityDispersionInput.value);
 
-      const res = await fetch('/api/correlation', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          velocity_dispersion: velocityDispersion,
-          galaxies: galaxiesData
-        })
-      });
+      statusMessage.style.display = 'block';
+      updateBtn.disabled = true;
+      updateBtn.textContent = "Calculations in progress...";
 
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/correlation', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            velocity_dispersion: velocityDispersion,
+            galaxies: galaxiesData
+          })
+        });
 
-      galaxiesDataRSD = galaxiesData.map((g, i) => ({
-        ...g,
-        x: data.x_rsd[i],
-        y: data.y_rsd[i],
-        z_cart: data.z_rsd[i]
-      }));
+        if (!res.ok) {
+          alert("Error fetching correlation data");
+          return;
+        }
 
-      plotGalaxies(galaxiesDataRSD);
+        const data = await res.json();
 
-      if (data.error) {
-        alert(data.error);
-        return;
+        galaxiesData = galaxiesData.map((g, i) => ({
+          ...g,
+          x: data.x_rsd[i],
+          y: data.y_rsd[i],
+          z_cart: data.z_rsd[i]
+        }));
+
+        plotGalaxies(galaxiesData);
+        plotCorrelation(data);
+
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        statusMessage.style.display = 'none';
+        updateBtn.disabled = false;
+        updateBtn.textContent = "Recalculate Correlation";
       }
-      plotCorrelation(data);
     }
 
     updateBtn.addEventListener('click', recalcCorrelationWithCurrentGalaxies);
     fetchGalaxiesBtn.addEventListener('click', fetchGalaxiesAndUpdate);
 
-    // Initial load: fetch with defaults
-    //fetchGalaxiesAndUpdate();
   </script>
-
-
 
 </body>
 </html>

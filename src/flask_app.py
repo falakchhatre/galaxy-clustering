@@ -22,13 +22,14 @@ def get_galaxies():
     return jsonify(data)
 
 def compute_correlation_response(galaxies, velocity_dispersion):
+    bins = np.linspace(0, 150, 30)
+    
     positions_real = np.array([[g['x'], g['y'], g['z_cart']] for g in galaxies])
     df_sample = pd.DataFrame(galaxies)
     
     x_rsd, y_rsd, z_rsd = apply_redshift_space_distortions(df_sample, velocity_dispersion=velocity_dispersion)
     positions_rsd = np.column_stack((x_rsd, y_rsd, z_rsd))
-
-    bins = np.linspace(0, 150, 30)
+    
     r, xi_real = compute_two_point_correlation(positions_real, bins)
     r, xi_rsd = compute_two_point_correlation(positions_rsd, bins)
 
