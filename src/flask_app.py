@@ -2,9 +2,9 @@ from flask import Flask, render_template, request, jsonify
 import numpy as np
 import pandas as pd
 
-from data_loader import load_cartesian_galaxies
-from rsd import apply_redshift_space_distortions
-from correlation import compute_two_point_correlation
+from src.data_loader import load_cartesian_galaxies
+from src.rsd import apply_redshift_space_distortions
+from src.correlation import compute_two_point_correlation
 
 app = Flask(__name__)
 df = load_cartesian_galaxies()
