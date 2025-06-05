@@ -9,8 +9,67 @@
 </head>
 <body>
   <header>
-    <h1>Galaxy Clustering & Redshift-Space Distortions</h1>
+    <h1>3D Galaxy Clustering and Redshift-Space Distortions</h1>
+    <p>Using Real Data from the Sloan Digital Sky Survey (SDSS)</p>
   </header>
+
+  <section class="intro">
+    <h2>Project Goals</h2>
+    <p>This project explores the structure of the universe by analyzing how galaxies are spread out in space. Using data from the Sloan Digital Sky Survey (SDSS), I:</p>
+    <ul>
+      <li>Convert galaxy coordinates (RA, Dec, redshift) into 3D space</li>
+      <li>Visualize how galaxies are distributed in the universe</li>
+      <li>Measure how galaxies cluster together at different distances</li>
+      <li>Study how galaxy motion affects what we observe (redshift distortions)</li>
+    </ul>
+  </section>
+
+  <section class="phase">
+    <h2>Phase 1: Data Acquisition & Preparation</h2>
+    <p>I used SDSS DR18 data to get galaxy coordinates. Here's the SQL query I used:</p>
+    <pre><code>SELECT TOP 10000
+      specObjID, ra, dec, z
+    FROM SpecObj
+    WHERE class = 'GALAXY'
+      AND z > 0.01 AND z < 0.3
+      AND zWarning = 0</code></pre>
+    <p>I filtered galaxies with reliable redshifts and converted their positions to 3D using <code>astropy</code>. I then plotted the redshift distribution and made 3D scatter plots of galaxy positions.</p>
+  </section>
+
+  <section class="phase">
+    <h2>Phase 2: Clustering Analysis</h2>
+    <p>Galaxies aren’t spread randomly. Gravity causes them to group together — this is called <strong>clustering</strong>. The tool I used to measure it is the <strong>2-point correlation function</strong> (2PCF), which answers:</p>
+    <blockquote>
+      “How likely is it to find two galaxies a certain distance apart, compared to random?”
+    </blockquote>
+
+    <ul>
+      <li><strong>DD:</strong> Pairs of real galaxies</li>
+      <li><strong>RR:</strong> Pairs of random (uniform) points</li>
+      <li><strong>DR:</strong> Cross-pairs between real and random</li>
+    </ul>
+    <p>Small distances (~5-10 Mpc): strong clustering (positive values)<br>
+    Large distances (~50+ Mpc): random (correlation near 0)</p>
+  </section>
+
+  <section class="phase">
+    <h2>Phase 3: Redshift-Space Distortions (RSD)</h2>
+    <p>Galaxies don’t just move because of cosmic expansion — they also move due to gravity. This messes with the redshift we observe.</p>
+
+    <h3>Real vs Redshift Space</h3>
+    <ul>
+      <li><strong>Real space:</strong> Galaxy positions using only cosmic expansion</li>
+      <li><strong>Redshift space:</strong> What we see, including local motion</li>
+    </ul>
+
+    <h3>Two types of distortions:</h3>
+    <ol>
+      <li><strong>Small scale:</strong> Random motion in clusters → looks stretched along our view (weaker signal)</li>
+      <li><strong>Large scale:</strong> Infall toward dense areas → looks squished (stronger signal)</li>
+    </ol>
+
+    <p>I simulated this by adding random velocities to each galaxy’s redshift and recalculated their positions and clustering.</p>
+  </section>
 
   <section class="controls">
     <label for="galaxyCount">Number of Galaxies:</label>
@@ -29,11 +88,16 @@
   </section>
 
   <section class="plots">
-    <h2>3D Galaxy Distribution (Cartesian Coordinates)</h2>
-    <div id="galaxyPlot" class="plot"></div>
-
-    <h2>Two-Point Correlation Function</h2>
-    <div id="correlationPlot" class="plot"></div>
+    <div class="plot-row">
+      <div class="plot-container">
+        <h2>3D Galaxy Distribution (Cartesian Coordinates)</h2>
+        <div id="galaxyPlot" class="plot"></div>
+      </div>
+      <div class="plot-container">
+        <h2>Two-Point Correlation Function</h2>
+        <div id="correlationPlot" class="plot"></div>
+      </div>
+    </div>
   </section>
 
   <script>
@@ -44,6 +108,7 @@
     const statusMessage = document.getElementById('statusMessage');
 
     let galaxiesData = null;  
+    let firstFetch = true;
 
     async function fetchGalaxies(count) {
       const res = await fetch(`/api/galaxies?count=${count}`);
@@ -107,30 +172,52 @@
 
       Plotly.newPlot('correlationPlot', [traceReal, traceRSD], layout, {responsive: true});
     }
-
     async function fetchGalaxiesAndUpdate() {
-      const count = parseInt(galaxyCountInput.value);
-      const velocityDispersion = parseFloat(velocityDispersionInput.value);
+      let count, velocityDispersion;
 
-      galaxiesData = await fetchGalaxies(count);
-      plotGalaxies(galaxiesData);
+      updateBtn.disabled = true;
+      updateBtn.textContent = "Calculating Correlation...";
 
-      const res = await fetch('/api/correlation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          velocity_dispersion: velocityDispersion,
-          galaxies: galaxiesData
-        })
-      });
+      if (firstFetch) {
+        count = parseInt(galaxyCountInput.defaultValue);
+        velocityDispersion = parseFloat(velocityDispersionInput.defaultValue);
 
-      if (!res.ok) {
-        alert("Error fetching correlation data");
-        return;
+        galaxyCountInput.value = count;
+        velocityDispersionInput.value = velocityDispersion;
+
+        firstFetch = false;
+      } else {
+        count = parseInt(galaxyCountInput.value);
+        velocityDispersion = parseFloat(velocityDispersionInput.value);
       }
 
-      const correlationData = await res.json();
-      plotCorrelation(correlationData);
+      try {
+        galaxiesData = await fetchGalaxies(count);
+        plotGalaxies(galaxiesData);
+
+        const res = await fetch('/api/correlation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            velocity_dispersion: velocityDispersion,
+            galaxies: galaxiesData
+          })
+        });
+
+        if (!res.ok) {
+          alert("Error fetching correlation data");
+          return;
+        }
+
+        const correlationData = await res.json();
+        plotCorrelation(correlationData);
+
+      } catch (error) {
+        alert("Error: " + error.message);
+      } finally {
+        updateBtn.disabled = false;
+        updateBtn.textContent = "Recalculate Correlation";
+      }
     }
 
     async function recalcCorrelationWithCurrentGalaxies() {
@@ -183,7 +270,6 @@
 
     updateBtn.addEventListener('click', recalcCorrelationWithCurrentGalaxies);
     fetchGalaxiesBtn.addEventListener('click', fetchGalaxiesAndUpdate);
-
   </script>
 
 </body>
