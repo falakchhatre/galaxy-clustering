@@ -16,9 +16,23 @@ def index():
 @app.route('/api/galaxies')
 def get_galaxies():
     count = int(request.args.get('count', 100))  
-    sample_df = df.sample(n=count) if count < len(df) else df
-    data = sample_df[['x', 'y', 'z_cart', 'ra', 'dec', 'z']].to_dict(orient='records')
+    velocity_dispersion = request.args.get('velocity_dispersion', default=None, type=float)
     
+    sample_df = df.sample(n=count) if count < len(df) else df
+
+    if velocity_dispersion is not None:
+        x_rsd, y_rsd, z_rsd = apply_redshift_space_distortions(sample_df, velocity_dispersion=velocity_dispersion)
+        data = pd.DataFrame({
+            'x': x_rsd,
+            'y': y_rsd,
+            'z_cart': z_rsd,
+            'ra': sample_df['ra'].values,
+            'dec': sample_df['dec'].values,
+            'z': sample_df['z'].values
+        }).to_dict(orient='records')
+    else:
+        data = sample_df[['x', 'y', 'z_cart', 'ra', 'dec', 'z']].to_dict(orient='records')
+
     return jsonify(data)
 
 def compute_correlation_response(galaxies, velocity_dispersion):

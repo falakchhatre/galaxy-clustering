@@ -13,63 +13,85 @@
     <p>Using Real Data from the Sloan Digital Sky Survey (SDSS)</p>
   </header>
 
-  <section class="intro">
-    <h2>Project Goals</h2>
-    <p>This project explores the structure of the universe by analyzing how galaxies are spread out in space. Using data from the Sloan Digital Sky Survey (SDSS), I:</p>
-    <ul>
-      <li>Convert galaxy coordinates (RA, Dec, redshift) into 3D space</li>
-      <li>Visualize how galaxies are distributed in the universe</li>
-      <li>Measure how galaxies cluster together at different distances</li>
-      <li>Study how galaxy motion affects what we observe (redshift distortions)</li>
-    </ul>
-  </section>
+<section class="intro">
+  <h2>Visualizing Galaxy Clustering</h2>
+  <p>Imagine hitting “pause” on the universe and looking at where all the galaxies are. Would they be randomly scattered, or would they form patterns?</p>
+  <p>This project uses real astronomical data to explore how galaxies are distributed in 3D space. It focuses on two main questions:</p>
+  <ul>
+    <li>Do galaxies cluster together, or are they randomly scattered?</li>
+    <li>Does our view of galaxy positions get distorted by their motion?</li>
+  </ul>
+</section>
 
-  <section class="phase">
-    <h2>Phase 1: Data Acquisition & Preparation</h2>
-    <p>I used SDSS DR18 data to get galaxy coordinates. Here's the SQL query I used:</p>
-    <pre><code>SELECT TOP 10000
-      specObjID, ra, dec, z
-    FROM SpecObj
-    WHERE class = 'GALAXY'
-      AND z > 0.01 AND z < 0.3
-      AND zWarning = 0</code></pre>
-    <p>I filtered galaxies with reliable redshifts and converted their positions to 3D using <code>astropy</code>. I then plotted the redshift distribution and made 3D scatter plots of galaxy positions.</p>
-  </section>
+<section class="phase">
+  <h2>Step 1: Getting Real Galaxy Data</h2>
+  <p>I used the Sloan Digital Sky Survey (SDSS), a massive public database of galaxies. Each galaxy comes with:</p>
+  <ul>
+    <li><strong>RA (Right Ascension):</strong> its right/left sky position (like longitude)</li>
+    <li><strong>Dec (Declination):</strong> its up/down sky position (like latitude)</li>
+    <li><strong>Redshift (z):</strong> how stretched its light is, which tells us how far away it is</li>
+  </ul>
+  <p>I converted those positions into 3D coordinates (X, Y, Z) using Python and plotted them.</p>
+</section>
 
-  <section class="phase">
-    <h2>Phase 2: Clustering Analysis</h2>
-    <p>Galaxies aren’t spread randomly. Gravity causes them to group together — this is called <strong>clustering</strong>. The tool I used to measure it is the <strong>2-point correlation function</strong> (2PCF), which answers:</p>
-    <blockquote>
-      “How likely is it to find two galaxies a certain distance apart, compared to random?”
-    </blockquote>
+<section class="phase">
+  <h2>Step 2: Do Galaxies Clump Together?</h2>
+  <p>Gravity makes galaxies pull toward each other, forming clusters. But how do we measure that?</p>
+  <p>I used something called the <strong>Two-Point Correlation Function</strong>, which basically asks:</p>
+  <blockquote>
+    “If I pick one galaxy, how likely am I to find another galaxy at a certain distance away compared to if galaxies were just scattered randomly?”
+  </blockquote>
+  <p>The formula is:</p>
+  <pre>ξ(r) = (DD - 2DR + RR) / RR</pre>
+  <p>ξ(r) = how much more likely it is to find galaxy pairs at distance <code>r</code> than you'd expect by chance.</p>
+  <ul>
+    <li><strong>DD:</strong> Number of galaxy/galaxy pairs</li>
+    <li><strong>DR:</strong> Number of galaxy/random pairs</li>
+    <li><strong>RR:</strong> Number of random/random pairs</li>
+  </ul>
+  <p>A positive ξ(r) means clustering: galaxies are more likely to be found <code>r</code> apart than if they were random. If ξ(r) ≈ 0, they’re randomly spaced.</p>
+</section>
 
-    <ul>
-      <li><strong>DD:</strong> Pairs of real galaxies</li>
-      <li><strong>RR:</strong> Pairs of random (uniform) points</li>
-      <li><strong>DR:</strong> Cross-pairs between real and random</li>
-    </ul>
-    <p>Small distances (~5-10 Mpc): strong clustering (positive values)<br>
-    Large distances (~50+ Mpc): random (correlation near 0)</p>
-  </section>
+<section class="phase">
+  <h2>Step 3: Accounting for Redshift-Space Distortions</h2>
+  <p>In reality, galaxies are not fixed in space, they’re moving under the influence of gravity. This motion adds a small velocity shift to their redshifts, which slightly distorts where we think they are along our line of sight. These effects are known as <strong>Redshift-Space Distortions</strong> (RSD).</p>
 
-  <section class="phase">
-    <h2>Phase 3: Redshift-Space Distortions (RSD)</h2>
-    <p>Galaxies don’t just move because of cosmic expansion — they also move due to gravity. This messes with the redshift we observe.</p>
+  <p>This leads to visual “distortions” when we try to map the universe. There are two main effects:</p>
+  <ol>
+    <li><strong>Small-scale distortion (Fingers of God):</strong> In dense regions, galaxies move in all directions → they look stretched along our line of sight</li>
+    <li><strong>Large-scale distortion (Kaiser effect):</strong> Galaxies falling into big clusters → they look squished toward the center</li>
+  </ol>
 
-    <h3>Real vs Redshift Space</h3>
-    <ul>
-      <li><strong>Real space:</strong> Galaxy positions using only cosmic expansion</li>
-      <li><strong>Redshift space:</strong> What we see, including local motion</li>
-    </ul>
+  <p>In this project, I only modeled <strong>small-scale distortions</strong> by adding a random velocity component to each galaxy along the line of sight:</p>
+  <pre>z_observed = z_cosmic + v_peculiar / c</pre>
+  <p>This was  to simulate the "Fingers of God" effect. I did not model large-scale distortions, since those require knowledge of the full velocity field, which was outside the scope of this project.</p>
+  <h3>Note on Redshift Range</h3>
+  <p>Although I filtered galaxies to be in the range 0.01 &lt; z &lt; 0.3, most of the data ended up between 0.01 and 0.02. This is likely because I restricted the query to only include galaxies with <code>zWarning = 0</code> meaning only highly confident measurements — which tend to come from lower redshifts in the SDSS spectroscopic catalog.</p>
+</section>
 
-    <h3>Two types of distortions:</h3>
-    <ol>
-      <li><strong>Small scale:</strong> Random motion in clusters → looks stretched along our view (weaker signal)</li>
-      <li><strong>Large scale:</strong> Infall toward dense areas → looks squished (stronger signal)</li>
-    </ol>
+<section class="phase">
+  <h2>So What Can You Do With This Visualizer?</h2>
+  <p>With this tool, you can:</p>
+  <ul>
+    <li>See galaxies mapped in 3D, color-coded by redshift (distance)</li>
+    <li>Adjust how many galaxies to display</li>
+    <li>Simulate redshift-space distortions by changing velocity dispersion</li>
+    <li>A live-updating graph of the Two-Point Correlation Function</li>
+  </ul>
+</section>
 
-    <p>I simulated this by adding random velocities to each galaxy’s redshift and recalculated their positions and clustering.</p>
-  </section>
+<section class="phase">
+  <h2>Summary of the Workflow</h2>
+  <ol>
+    <li>Fetched galaxy data from the SDSS</li>
+    <li>Converted sky coordinates and redshift into 3D positions</li>
+    <li>Plotted galaxies in real space</li>
+    <li>Generated a matching random sample for statistical comparison</li>
+    <li>Calculated galaxy clustering (ξ(r))</li>
+    <li>Applied redshift-space distortions and updated the plots</li>
+  </ol>
+</section>
+
 
   <section class="controls">
     <label for="galaxyCount">Number of Galaxies:</label>
@@ -90,7 +112,7 @@
   <section class="plots">
     <div class="plot-row">
       <div class="plot-container">
-        <h2>3D Galaxy Distribution (Cartesian Coordinates)</h2>
+        <h2>3D Galaxy Distribution</h2>
         <div id="galaxyPlot" class="plot"></div>
       </div>
       <div class="plot-container">
@@ -117,6 +139,15 @@
     }
 
     function plotGalaxies(galaxies) {
+      const plotDiv = document.getElementById('galaxyPlot');
+
+      let currentCamera = null;
+      if (plotDiv && plotDiv.layout && plotDiv.layout.scene && plotDiv.layout.scene.camera) {
+        currentCamera = plotDiv.layout.scene.camera;
+      }
+
+      const fixedRange = [-100, 100];
+
       const trace = {
         x: galaxies.map(g => g.x),
         y: galaxies.map(g => g.y),
@@ -137,14 +168,18 @@
       const layout = {
         margin: { l:0, r:0, b:0, t:0 },
         scene: {
-          xaxis: { title: 'X (Mpc)' },
-          yaxis: { title: 'Y (Mpc)' },
-          zaxis: { title: 'Z (Mpc)' }
+          xaxis: { title: 'X (Mpc)', range: fixedRange},
+          yaxis: { title: 'Y (Mpc)', range: fixedRange},
+          zaxis: { title: 'Z (Mpc)', range: fixedRange},
+          camera: currentCamera || { 
+            eye: { x: 1.2, y: 1.2, z: 1.2 }
+          }
         }
       };
 
       Plotly.newPlot('galaxyPlot', [trace], layout, {responsive: true});
     }
+
 
     function plotCorrelation(data) {
       const traceReal = {
@@ -172,24 +207,13 @@
 
       Plotly.newPlot('correlationPlot', [traceReal, traceRSD], layout, {responsive: true});
     }
+    
     async function fetchGalaxiesAndUpdate() {
-      let count, velocityDispersion;
+      const count = parseInt(galaxyCountInput.value);
+      const velocityDispersion = parseFloat(velocityDispersionInput.value);
 
       updateBtn.disabled = true;
       updateBtn.textContent = "Calculating Correlation...";
-
-      if (firstFetch) {
-        count = parseInt(galaxyCountInput.defaultValue);
-        velocityDispersion = parseFloat(velocityDispersionInput.defaultValue);
-
-        galaxyCountInput.value = count;
-        velocityDispersionInput.value = velocityDispersion;
-
-        firstFetch = false;
-      } else {
-        count = parseInt(galaxyCountInput.value);
-        velocityDispersion = parseFloat(velocityDispersionInput.value);
-      }
 
       try {
         galaxiesData = await fetchGalaxies(count);
@@ -219,7 +243,7 @@
         updateBtn.textContent = "Recalculate Correlation";
       }
     }
-
+    
     async function recalcCorrelationWithCurrentGalaxies() {
       if (!galaxiesData) {
         alert("Please fetch galaxies first.");

@@ -1,6 +1,7 @@
 body {
   font-family: 'Segoe UI', sans-serif;
-  background: #0e0e1a;
+  background: #0e0e1a url('/static/stars-bg.png') repeat;
+  background-size: 800px;
   color: #f5f5f5;
   margin: 0;
   padding: 0;
@@ -8,7 +9,7 @@ body {
 }
 
 header {
-  background: #1a1a2e;
+  background: linear-gradient(to right, #0e0e1a, #1a1a2e);
   padding: 2em 1em;
   text-align: center;
   border-bottom: 2px solid #333;
@@ -16,11 +17,21 @@ header {
 
 h1 {
   margin: 0;
-  font-size: 2.2rem;
+  font-size: 2.5rem;
+  color: #aaccff;
+  letter-spacing: 1px;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: #88bbff;
+  margin-bottom: 0.5em;
+  letter-spacing: 0.5px;
 }
 
 p, li {
   font-size: 1rem;
+  color: #e0e0e0;
 }
 
 .phase, .plots, .reflection, .controls {
@@ -49,11 +60,12 @@ input {
   background: #1a1a2e;
   color: #f5f5f5;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input:focus {
-  border-color: #3366cc;
-  box-shadow: 0 0 5px #3366cc;
+  border-color: #5aa9e6;
+  box-shadow: 0 0 5px #5aa9e6;
 }
 
 button {
@@ -64,11 +76,18 @@ button {
   color: white;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
 button:hover {
   background: #254a99;
+  transform: scale(1.03);
+}
+
+button:disabled {
+  background: #555;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .plot-row {
@@ -80,7 +99,7 @@ button:hover {
 
 .plot-container {
   flex: 1 1 45%;
-  min-width: 300px;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   margin-bottom: 2em;
@@ -94,9 +113,9 @@ button:hover {
 
 .plot {
   height: 500px;
-  background: #222244;
+  background: radial-gradient(ellipse at top left, #1b1b33, #0e0e1a);
   border-radius: 6px;
-  box-shadow: inset 0 0 8px #4455aa;
+  box-shadow: 0 0 10px rgba(100,150,255,0.2), inset 0 0 8px #4455aa;
   margin-bottom: 2em;
 }
 
@@ -108,4 +127,5 @@ pre {
   font-family: Consolas, monospace;
   font-size: 0.9rem;
   color: #cdd6f4;
+  box-shadow: inset 0 0 8px #222;
 }
