@@ -35,25 +35,16 @@ def get_galaxies():
 
     return jsonify(data)
 
-def compute_correlation_response(galaxies, velocity_dispersion):
+def compute_correlation_response(positions_real, positions_rsd):
     bins = np.linspace(0, 150, 30)
-    
-    positions_real = np.array([[g['x'], g['y'], g['z_cart']] for g in galaxies])
-    df_sample = pd.DataFrame(galaxies)
-    
-    x_rsd, y_rsd, z_rsd = apply_redshift_space_distortions(df_sample, velocity_dispersion=velocity_dispersion)
-    positions_rsd = np.column_stack((x_rsd, y_rsd, z_rsd))
-    
+
     r, xi_real = compute_two_point_correlation(positions_real, bins)
     r, xi_rsd = compute_two_point_correlation(positions_rsd, bins)
 
     return {
         'r': r.tolist(),
         'xi_real': xi_real.tolist(),
-        'xi_rsd': xi_rsd.tolist(),
-        'x_rsd': x_rsd.tolist(),
-        'y_rsd': y_rsd.tolist(),
-        'z_rsd': z_rsd.tolist()
+        'xi_rsd': xi_rsd.tolist()
     }
 
 @app.route('/api/correlation', methods=['GET', 'POST'])
@@ -65,7 +56,18 @@ def get_correlation():
         sample_df = df.sample(n=count) if count < len(df) else df
         galaxies = sample_df[['x', 'y', 'z_cart', 'ra', 'dec', 'z']].to_dict(orient='records')
 
-        result = compute_correlation_response(galaxies, velocity_dispersion)
+        positions_real = sample_df[['x', 'y', 'z_cart']].values
+        x_rsd, y_rsd, z_rsd = apply_redshift_space_distortions(sample_df, velocity_dispersion)
+        positions_rsd = np.column_stack((x_rsd, y_rsd, z_rsd))
+
+        result = compute_correlation_response(positions_real, positions_rsd)
+
+        result.update({
+            'x_rsd': x_rsd.tolist(),
+            'y_rsd': y_rsd.tolist(),
+            'z_rsd': z_rsd.tolist()
+        })
+
         return jsonify(result)
 
     elif request.method == 'POST':
@@ -76,7 +78,20 @@ def get_correlation():
         if not galaxies:
             return jsonify({'error': 'No galaxy data provided'}), 400
 
-        result = compute_correlation_response(galaxies, velocity_dispersion)
+        df_sample = pd.DataFrame(galaxies)
+
+        positions_real = df_sample[['x', 'y', 'z_cart']].values
+        x_rsd, y_rsd, z_rsd = apply_redshift_space_distortions(df_sample, velocity_dispersion)
+        positions_rsd = np.column_stack((x_rsd, y_rsd, z_rsd))
+
+        result = compute_correlation_response(positions_real, positions_rsd)
+
+        result.update({
+            'x_rsd': x_rsd.tolist(),
+            'y_rsd': y_rsd.tolist(),
+            'z_rsd': z_rsd.tolist()
+        })
+
         return jsonify(result)
 
 if __name__ == '__main__':
