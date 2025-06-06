@@ -3,9 +3,12 @@ from scipy.spatial import cKDTree
 
 def count_pairs(data1, data2, bins):
     tree1 = cKDTree(data1)
-    counts = np.zeros(len(bins) - 1)
+    tree2 = cKDTree(data2)  # build once, reuse!
+
+    counts = np.zeros(len(bins) - 1, dtype=int)
     for i in range(len(bins) - 1):
-        counts[i] = tree1.count_neighbors(cKDTree(data2), bins[i+1]) - tree1.count_neighbors(cKDTree(data2), bins[i])
+        counts[i] = tree1.count_neighbors(tree2, bins[i+1]) - tree1.count_neighbors(tree2, bins[i])
+
     return counts
 
 def compute_two_point_correlation(galaxy_positions, bins):
