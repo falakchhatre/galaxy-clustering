@@ -36,7 +36,7 @@
 
 <section class="phase">
   <h2>Step 2: Do Galaxies Clump Together?</h2>
-  <p>Gravity makes galaxies pull toward each other, forming clusters. But how do we measure that?</p>
+  <p>Gravity makes galaxies pull toward each other, forming clusters. But how is that measured that?</p>
   <p>I used something called the <strong>Two-Point Correlation Function</strong>, which basically asks:</p>
   <blockquote>
     “If I pick one galaxy, how likely am I to find another galaxy at a certain distance away compared to if galaxies were just scattered randomly?”
@@ -54,9 +54,9 @@
 
 <section class="phase">
   <h2>Step 3: Accounting for Redshift-Space Distortions</h2>
-  <p>In reality, galaxies are not fixed in space, they’re moving under the influence of gravity. This motion adds a small velocity shift to their redshifts, which slightly distorts where we think they are along our line of sight. These effects are known as <strong>Redshift-Space Distortions</strong> (RSD).</p>
+  <p>In reality, galaxies are not fixed in space, they’re moving under the influence of gravity. This motion adds a small velocity shift to their redshifts, which slightly distorts where they are thought to be along our line of sight. These effects are known as <strong>Redshift-Space Distortions</strong> (RSD).</p>
 
-  <p>This leads to visual “distortions” when we try to map the universe. There are two main effects:</p>
+  <p>This leads to visual “distortions” when trying to map the universe. There are two main effects:</p>
   <ol>
     <li><strong>Small-scale distortion (Fingers of God):</strong> In dense regions, galaxies move in all directions → they look stretched along our line of sight</li>
     <li><strong>Large-scale distortion (Kaiser effect):</strong> Galaxies falling into big clusters → they look squished toward the center</li>
@@ -102,12 +102,22 @@
 
     <button id="updateBtn">Recalculate Correlation</button>
     <button id="fetchGalaxiesBtn">Fetch Galaxies</button>
+    <div class="warning">
+      <h4>Performance Note: Limited Resources</h4>
+      <p>
+        This site is hosted on <strong>Render's free tier</strong>, which has limited memory and computing power. 
+        For smooth performance, please keep the galaxy count between 100 and 1500.
+      </p>
+    </div>
+
   </section>
 
   <section>
     <div id="statusMessage" style="display:none; margin-top:10px; color:#555; font-weight: bold;">
     </div>
   </section>
+
+  
 
   <section class="plots">
     <div class="plot-row">
@@ -229,7 +239,7 @@
         });
 
         if (!res.ok) {
-          alert("Error fetching correlation data");
+          alert("Error fetching correlation data. This may happen if the galaxy count or velocity is too high. Try reducing one or both.");
           return;
         }
 
@@ -267,7 +277,7 @@
         });
 
         if (!res.ok) {
-          alert("Error fetching correlation data");
+          alert("Error fetching correlation data. This may happen if the galaxy count or velocity is too high. Try reducing one or both.");
           return;
         }
 
